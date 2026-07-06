@@ -22,8 +22,7 @@ struct ConstructorParams {
 /// @dev Inspired by FraxFinance's Timelock2Step contract
 /// @notice  An abstract contract which adds internal functions for access control (modifiers are an anti-pattern as used in Ownable)
 contract AgoraOwnable2Step is Ownable2Step {
-    constructor(ConstructorParams memory _params) Ownable(_params.ownerAddress) {
-    }
+    constructor(ConstructorParams memory _params) Ownable(_params.ownerAddress) {}
 
     // ============================================================================================
     // Functions: Internal Checks
