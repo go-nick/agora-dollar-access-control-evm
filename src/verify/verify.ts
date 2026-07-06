@@ -1,20 +1,35 @@
 import { spawn } from "child_process";
-import { createPublicClient, http } from "viem";
+import { createPublicClient, http, parseAbi } from "viem";
+import { anvil } from "viem/chains";
+import { readFileSync } from "fs";
 
 const RPC_URL = "http://127.0.0.1:8545";
+
+const CONTRACT_ABI = parseAbi([
+  "function agoraDollarProxyAdmin() view returns (address)",
+  "function agoraDollar() view returns (address)",
+  "function owner() view returns (address)",
+]);
 
 async function main() {
   const stopAnvil = startAnvil();
 
   try {
-    await waitForAnvil();
-
-    const client = createPublicClient({ transport: http(RPC_URL) });
-    const chainId = await client.getChainId();
-    console.log("anvil ready — chain ID:", chainId);
-
+    const client = await waitForAnvil();
     await runForgeScript();
     console.log("contract deployed");
+
+    const contractAddress = getContractAddress();
+    console.log({ contractAddress });
+
+    // TODO: double-check this later
+    // @ts-expect-error viem 2.54 bug: authorizationList incorrectly required in ReadContractParameters
+    const proxyAdmin = await client.readContract({
+      address: contractAddress as `0x${string}`,
+      abi: CONTRACT_ABI,
+      functionName: "agoraDollarProxyAdmin",
+    });
+    console.log("agoraDollarProxyAdmin:", proxyAdmin);
   } finally {
     stopAnvil();
   }
@@ -27,26 +42,27 @@ main().catch((err) => {
 
 // Start anvil as a child process. Returns a cleanup function.
 function startAnvil(): () => void {
-  const anvil = spawn("anvil", [], {
+  const anvilProcess = spawn("anvil", [], {
     stdio: "pipe", // suppress anvil output
   });
 
-  anvil.on("error", (err) => {
+  anvilProcess.on("error", (err) => {
     console.error("Failed to start anvil:", err.message);
     process.exit(1);
   });
 
-  return () => anvil.kill();
+  return () => anvilProcess.kill();
 }
 
 // Poll the RPC until anvil is ready. Retries up to maxAttempts times.
-async function waitForAnvil(maxAttempts = 20): Promise<void> {
-  const client = createPublicClient({ transport: http(RPC_URL) });
+async function waitForAnvil(maxAttempts = 20) {
+  const client = createPublicClient({ chain: anvil, transport: http(RPC_URL) });
 
   for (let i = 0; i < maxAttempts; i++) {
     try {
-      await client.getChainId();
-      return; // success
+      const chainId = await client.getChainId();
+      console.log("anvil ready — chain ID:", chainId);
+      return client;
     } catch {
       await new Promise((r) => setTimeout(r, 250)); // wait 250ms, try again
     }
@@ -79,4 +95,11 @@ function runForgeScript(): Promise<void> {
       reject(new Error(`Failed to start forge: ${err.message}`));
     });
   });
+}
+
+function getContractAddress(): string {
+  const rawBroadcast = readFileSync("broadcast/DeployPrivilegedRole.s.sol/31337/run-latest.json", "utf8");
+  const json = JSON.parse(rawBroadcast);
+  const contractAddress = json.transactions[0].contractAddress;
+  return contractAddress;
 }
