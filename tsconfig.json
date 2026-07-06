@@ -7,16 +7,18 @@
     "experimentalDecorators": true,
     "forceConsistentCasingInFileNames": true,
     "lib": ["ESNext"],
+    "types": ["node"],
     "module": "commonjs",
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "noImplicitAny": false,
     "removeComments": false,
     "resolveJsonModule": true,
     "sourceMap": true,
     "strict": false,
     "target": "ESNext",
-    "outDir": "dist"
+    "outDir": "dist",
+    "rootDir": "."
   },
   "exclude": ["node_modules"],
-  "include": ["scripts/**/*"]
+  "include": ["scripts/**/*", "src/**/*"]
 }
