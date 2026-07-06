@@ -31,6 +31,7 @@ contract AgoraPrivilegedRole is OwnableAccessControl {
         ConstructorParams memory _params
     ) OwnableAccessControl(OwnableAccessControlParams({ ownerAddress: _params.ownerAddress })) {
         agoraDollar = IAgoraDollar(_params.agoraDollarAddress);
+        agoraDollarProxyAdmin = IAgoraProxyAdmin(_params.agoraDollarProxyAdminAddress);
     }
 
     //==============================================================================
